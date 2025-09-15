@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import os
 import time
+import xml.etree.ElementTree as ET
 
 class CompetitorTracker:
     def __init__(self, config_path='config.json'):
@@ -24,6 +25,98 @@ class CompetitorTracker:
 
     def scrape_website(self, company, url):
         """Scrape a single website for news and updates"""
+        # Use specialized scraper for specific companies
+        if company == "Google AI":
+            return self.scrape_google_ai()
+        elif company == "OpenAI":
+            return self.scrape_openai_rss()
+        else:
+            return self.scrape_generic_website(company, url)
+
+    def scrape_openai_rss(self):
+        """Scrape OpenAI using RSS feed"""
+        try:
+            response = self.session.get("https://openai.com/blog/rss.xml", timeout=10)
+            response.raise_for_status()
+
+            root = ET.fromstring(response.content)
+            articles = []
+
+            items = root.findall('.//item')
+            for item in items[:5]:  # Get first 5
+                title_elem = item.find('title')
+                link_elem = item.find('link')
+                desc_elem = item.find('description')
+                date_elem = item.find('pubDate')
+
+                if title_elem is not None:
+                    articles.append({
+                        'title': title_elem.text,
+                        'link': link_elem.text if link_elem is not None else '',
+                        'description': desc_elem.text if desc_elem is not None else '',
+                        'date': date_elem.text if date_elem is not None else '',
+                        'company': 'OpenAI'
+                    })
+
+            return articles
+
+        except Exception as e:
+            print(f"Error scraping OpenAI RSS: {str(e)}")
+            return []
+
+    def scrape_google_ai(self):
+        """Scrape Google AI blog"""
+        try:
+            # Try direct scraping of Google AI blog
+            response = self.session.get("https://blog.google/technology/ai/", timeout=15)
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            articles = []
+
+            # Look for AI article links
+            selectors = [
+                'a[href*="/technology/ai/"]:not([href*="twitter"]):not([href*="facebook"]):not([href*="linkedin"])',
+                'h2 a[href*="/technology/ai/"]',
+                'h3 a[href*="/technology/ai/"]'
+            ]
+
+            for selector in selectors:
+                elements = soup.select(selector)
+                if elements:
+                    for element in elements[:5]:
+                        title = element.get_text().strip()
+                        link = element.get('href')
+
+                        if title and len(title) > 5:
+                            if not link.startswith('http'):
+                                link = f"https://blog.google{link}"
+
+                            # Try to find description
+                            description = ""
+                            parent = element.find_parent()
+                            if parent:
+                                desc_elem = parent.find('p')
+                                if desc_elem:
+                                    description = desc_elem.get_text().strip()[:200]
+
+                            articles.append({
+                                'title': title,
+                                'link': link,
+                                'description': description,
+                                'date': '',
+                                'company': 'Google AI'
+                            })
+                    break
+
+            return articles
+
+        except Exception as e:
+            print(f"Error scraping Google AI: {str(e)}")
+            return []
+
+    def scrape_generic_website(self, company, url):
+        """Scrape a generic website for news and updates"""
         try:
             response = self.session.get(url, timeout=10)
             response.raise_for_status()
