@@ -1,0 +1,18 @@
+{
+  "competitors": {
+    "OpenAI": "https://openai.com/blog",
+    "Google AI": "https://blog.google/technology/ai/",
+    "Microsoft AI": "https://blogs.microsoft.com/ai/",
+    "Anthropic": "https://www.anthropic.com/news",
+    "Meta AI": "https://ai.meta.com/blog/",
+    "DeepMind": "https://deepmind.google/discover/blog/",
+    "Hugging Face": "https://huggingface.co/blog",
+    "Cohere": "https://cohere.com/blog"
+  },
+  "settings": {
+    "request_delay": 2,
+    "timeout": 10,
+    "max_articles_per_site": 5,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+  }
+}
